@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: teste-mongo-quarkus-api
+  name: teste-mongo-quarkus-api
+spec:
+  path: "/teste-mongo/"
+  port:
+    targetPort: 8080-tcp
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: teste-mongo-quarkus-api
+    weight: 100
+  wildcardPolicy: None

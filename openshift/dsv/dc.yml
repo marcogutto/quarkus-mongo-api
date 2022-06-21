@@ -1,0 +1,89 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: teste-mongo-quarkus-api
+  name: teste-mongo-quarkus-api
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    app: teste-mongo-quarkus-api
+    deploymentconfig: teste-mongo-quarkus-api
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: teste-mongo-quarkus-api
+        deploymentconfig: teste-mongo-quarkus-api
+    spec:
+      containers:
+      - args:
+        name: teste-mongo-quarkus-api
+        image: image-registry.openshift-image-registry.svc:5000/teste-quarkus-mongo/teste-mongo-quarkus-api:1.0.0-jvm
+        imagePullPolicy: Always
+        env:
+        - name: QUARKUS_PROFILE
+          value: "prod"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: mongo-credentials
+              key: mongo-url
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-credentials
+              key: mongo-database
+        - name: LOG_LEVEL
+          valueFrom:
+            secretKeyRef:
+              name: log
+              key: log-level
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            memory: 400Mi
+          limits:
+            memory: 400Mi
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /teste-mongo/api/q/health/live
+            port: 8080
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 5
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /teste-mongo/api/q/health/ready
+            port: 8080
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  test: false
+  triggers:
+    - type: ConfigChange
